@@ -1,8 +1,8 @@
 [
   {
     "id": 1,
-    "title": "Backup Firebird",
-    "description": "Criar backup completo do banco Firebird - Folha",
+    "title": "Download Backup Firebird",
+    "description": "Realizar download completo do banco Firebird - Folha",
     "icon": "💾",
     "status": "completed"
   },
