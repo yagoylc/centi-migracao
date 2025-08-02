@@ -6,136 +6,166 @@
     <title>Migração de Dados - Arrecadação & Folha</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .animate-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-        .transition-all { transition: all 0.3s ease; }
-        .bg-gradient-blue { background: linear-gradient(to right, #3b82f6, #2563eb); }
-        .bg-gradient-green { background: linear-gradient(to right, #10b981, #059669); }
-        .tab-active { background: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f8fafc;
+        }
+        .card-completed {
+            background: #f0f9ff;
+            border: 1px solid #38bdf8;
+            color: #0369a1;
+        }
+        .card-current {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        .card-pending {
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            color: #6b7280;
+        }
+        .icon-completed { color: #06b6d4; }
+        .icon-current { color: #f59e0b; }
+        .icon-pending { color: #9ca3af; }
+        .tab-active {
+            background: white;
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%);
+            transition: width 0.5s ease;
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-    <div class="max-w-6xl mx-auto p-8">
+<body>
+    <div class="min-h-screen bg-gray-50">
         <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="flex justify-between items-start mb-6">
-                <div></div>
-                <div>
-                    <h1 class="text-4xl font-bold text-slate-800 mb-4">
-                        Migração de Dados - Firebird → SQL Server
-                    </h1>
-                    <p class="text-lg text-slate-600">Acompanhamento em Tempo Real</p>
-                </div>
-                <div class="flex flex-col items-end space-y-2">
-                    <button id="adminBtn" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all text-sm">
-                        ✏️ Admin
-                    </button>
-                    <div id="adminControls" class="hidden flex space-x-2">
-                        <button id="prevBtn" class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all text-sm">← Anterior</button>
-                        <button id="nextBtn" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm">Próximo →</button>
-                        <button id="saveBtn" class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all text-sm">💾 Baixar</button>
-                        <button id="logoutBtn" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">✕</button>
+        <div class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Migração de Dados</h1>
+                        <p class="text-sm text-gray-600 mt-1">Firebird → SQL Server</p>
                     </div>
-                    <div class="text-xs text-slate-500">
-                        🔄 Atualizado: <span id="lastUpdate"></span>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">
+                            Última atualização: <span id="lastUpdate" class="font-medium">--:--:--</span>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-1">
+                            Atualização automática a cada 10s
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Login Admin -->
-            <div id="loginBox" class="hidden mb-6 p-4 bg-white rounded-lg shadow-lg max-w-md mx-auto">
-                <div class="flex space-x-2">
-                    <input id="passwordInput" type="password" placeholder="Senha admin" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <button id="loginBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">Entrar</button>
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Tabs -->
+            <div class="mb-8">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8">
+                        <button id="tabArrecadacao" class="tab-btn py-2 px-1 border-b-2 font-medium text-sm tab-active">
+                            Arrecadação
+                            <span id="badgeArrecadacao" class="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">0/8</span>
+                        </button>
+                        <button id="tabFolha" class="tab-btn py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            Folha de Pagamento
+                            <span id="badgeFolha" class="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">0/8</span>
+                        </button>
+                    </nav>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Senha: admin123</p>
             </div>
-        </div>
 
-        <!-- Tabs -->
-        <div class="mb-8">
-            <div class="flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg max-w-md mx-auto">
-                <button id="tabArrecadacao" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all tab-active text-blue-600 font-medium">
-                    💳 <span class="font-semibold ml-2">Arrecadação</span>
-                    <span id="badgeArrecadacao" class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">-/8</span>
-                </button>
-                <button id="tabFolha" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all text-gray-600">
-                    👥 <span class="font-semibold ml-2">Folha de Pagamento</span>
-                    <span id="badgeFolha" class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">-/8</span>
-                </button>
+            <!-- Progress Section -->
+            <div class="mb-8">
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900" id="progressTitle">Progresso - Arrecadação</h3>
+                            <p class="text-sm text-gray-600" id="currentStepText">Carregando...</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-gray-900" id="progressPercentage">0%</div>
+                            <div class="text-sm text-gray-500" id="progressSteps">0/8 concluídas</div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="progress-bar h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Status Atual -->
-        <div id="currentStatus" class="text-center mb-8">
-            <div class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 rounded-xl border border-blue-200">
-                <span class="animate-pulse mr-2">⏰</span>
-                <span class="font-semibold" id="currentStepText">Carregando...</span>
+            <!-- Steps Grid -->
+            <div id="stepsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Steps will be rendered here -->
             </div>
-        </div>
 
-        <!-- Progress Bar -->
-        <div class="mb-12">
-            <div class="flex justify-between items-center mb-4">
-                <span class="text-sm font-medium text-slate-600" id="progressLabel">Progresso</span>
-                <span class="text-sm font-medium text-slate-600" id="progressText">0% (0/8)</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-                <div id="progressBar" class="h-3 rounded-full transition-all duration-500 bg-gradient-blue" style="width: 0%"></div>
-            </div>
-        </div>
-
-        <!-- Flowchart -->
-        <div id="flowchart" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="text-center text-gray-500 col-span-full">Carregando dados...</div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-            <div class="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
+            <!-- Summary Cards -->
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Arrecadação Summary -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
                     <div class="flex items-center">
-                        <span class="text-2xl mr-2">💳</span>
-                        <h3 class="font-bold text-blue-700">Arrecadação</h3>
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-sm font-medium text-gray-500">Arrecadação</h3>
+                            <p class="text-2xl font-semibold text-gray-900" id="arrecadacaoProgress">0/8</p>
+                        </div>
                     </div>
-                    <div id="arrecadacaoCount" class="text-2xl font-bold text-blue-600">-/8</div>
+                    <div class="mt-4 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Concluídas:</span>
+                            <span class="font-medium" id="arrecadacaoCompleted">0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Atual:</span>
+                            <span class="font-medium" id="arrecadacaoCurrent">-</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Pendentes:</span>
+                            <span class="font-medium" id="arrecadacaoPending">8</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-green-600">Concluídas:</span>
-                        <span class="font-semibold" id="arrecadacaoCompleted">-</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-blue-600">Atual:</span>
-                        <span class="font-semibold" id="arrecadacaoCurrent">-</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Pendentes:</span>
-                        <span class="font-semibold" id="arrecadacaoPending">-</span>
-                    </div>
-                </div>
-            </div>
 
-            <div class="bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
+                <!-- Folha Summary -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
                     <div class="flex items-center">
-                        <span class="text-2xl mr-2">👥</span>
-                        <h3 class="font-bold text-green-700">Folha de Pagamento</h3>
+                        <div class="p-2 bg-green-100 rounded-lg">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-sm font-medium text-gray-500">Folha de Pagamento</h3>
+                            <p class="text-2xl font-semibold text-gray-900" id="folhaProgress">0/8</p>
+                        </div>
                     </div>
-                    <div id="folhaCount" class="text-2xl font-bold text-green-600">-/8</div>
-                </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-green-600">Concluídas:</span>
-                        <span class="font-semibold" id="folhaCompleted">-</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-blue-600">Atual:</span>
-                        <span class="font-semibold" id="folhaCurrent">-</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Pendentes:</span>
-                        <span class="font-semibold" id="folhaPending">-</span>
+                    <div class="mt-4 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Concluídas:</span>
+                            <span class="font-medium" id="folhaCompleted">0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Atual:</span>
+                            <span class="font-medium" id="folhaCurrent">-</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Pendentes:</span>
+                            <span class="font-medium" id="folhaPending">8</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -145,14 +175,41 @@
     <script>
         let state = {
             activeTab: 'arrecadacao',
-            isAdmin: false,
             data: { arrecadacao: [], folha: [] }
         };
 
-        // Funções utilitárias
+        // Ícones para cada tipo de step
+        const stepIcons = {
+            1: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                </svg>`,
+            2: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                </svg>`,
+            3: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>`,
+            4: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"></path>
+                </svg>`,
+            5: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>`,
+            6: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+                </svg>`,
+            7: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                </svg>`,
+            8: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>`
+        };
+
         async function loadJSON(filename) {
             try {
                 const response = await fetch(filename + '?t=' + Date.now());
+                if (!response.ok) throw new Error('Network response was not ok');
                 return await response.json();
             } catch (error) {
                 console.error('Erro ao carregar', filename, error);
@@ -170,16 +227,6 @@
             render();
         }
 
-        function downloadJSON(data, filename) {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
         function getCurrentSteps() {
             return state.data[state.activeTab] || [];
         }
@@ -192,59 +239,47 @@
             return { completed, current, pending, total: steps.length };
         }
 
-        function getStatusColor(status) {
-            return status === 'completed' ? 'bg-green-500' : status === 'current' ? 'bg-blue-500' : 'bg-gray-400';
-        }
-
-        function getStatusBorder(status) {
-            return status === 'completed' ? 'border-green-500 shadow-green-200' : 
-                   status === 'current' ? 'border-blue-500 shadow-blue-200 shadow-lg' : 'border-gray-300';
-        }
-
-        function getStatusIcon(status) {
-            return status === 'completed' ? '✅' : status === 'current' ? '<span class="animate-pulse">⏰</span>' : '⭕';
-        }
-
-        function getStatusBadge(status) {
-            if (status === 'completed') 
-                return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">✅ Concluído</span>';
-            if (status === 'current') 
-                return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">⏰ Em Andamento</span>';
-            return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Pendente</span>';
-        }
-
-        function renderFlowchart() {
+        function renderSteps() {
             const steps = getCurrentSteps();
-            const flowchart = document.getElementById('flowchart');
+            const container = document.getElementById('stepsContainer');
             
             if (steps.length === 0) {
-                flowchart.innerHTML = '<div class="text-center text-gray-500 col-span-full">Nenhum dado encontrado</div>';
+                container.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">Carregando dados...</div>';
                 return;
             }
             
-            flowchart.innerHTML = steps.map((step, index) => `
-                <div class="relative">
-                    ${index < steps.length - 1 ? '<div class="hidden lg:block absolute top-16 -right-3 w-6 h-0.5 bg-gradient-to-r from-slate-300 to-slate-200 z-0"></div>' : ''}
-                    <div class="relative bg-white rounded-xl border-2 ${getStatusBorder(step.status)} p-6 hover:shadow-xl transition-all duration-300 z-10">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="${getStatusColor(step.status)} rounded-full w-12 h-12 flex items-center justify-center text-white">
-                                ${getStatusIcon(step.status)}
+            container.innerHTML = steps.map(step => {
+                const cardClass = `card-${step.status}`;
+                const iconClass = `icon-${step.status}`;
+                const icon = stepIcons[step.id] || stepIcons[1];
+                
+                let statusIndicator = '';
+                if (step.status === 'completed') {
+                    statusIndicator = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Concluído</span>';
+                } else if (step.status === 'current') {
+                    statusIndicator = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 animate-pulse">Em andamento</span>';
+                } else {
+                    statusIndicator = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Pendente</span>';
+                }
+                
+                return `
+                    <div class="rounded-lg p-4 ${cardClass}">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center">
+                                <div class="${iconClass} mr-3">
+                                    ${icon}
+                                </div>
+                                <span class="text-sm font-medium">${step.id.toString().padStart(2, '0')}</span>
                             </div>
-                            <span class="text-2xl font-bold text-slate-300">${step.id.toString().padStart(2, '0')}</span>
                         </div>
-                        <div class="flex justify-center mb-4">
-                            <div class="${getStatusColor(step.status)} rounded-lg p-3">
-                                <span class="text-2xl">${step.icon}</span>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <h3 class="text-lg font-bold mb-2 ${step.status === 'completed' ? 'text-green-700' : step.status === 'current' ? 'text-blue-700' : 'text-gray-500'}">${step.title}</h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">${step.description}</p>
-                            <div class="mt-4">${getStatusBadge(step.status)}</div>
+                        <div>
+                            <h3 class="font-medium text-sm mb-2">${step.title}</h3>
+                            <p class="text-xs opacity-75 mb-3 leading-relaxed">${step.description}</p>
+                            ${statusIndicator}
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function updateProgress() {
@@ -253,16 +288,17 @@
             const current = steps.find(s => s.status === 'current');
             const percentage = steps.length > 0 ? (completed / steps.length) * 100 : 0;
 
-            document.getElementById('progressLabel').textContent = `Progresso - ${state.activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'}`;
-            document.getElementById('progressText').textContent = `${percentage.toFixed(1)}% (${completed}/${steps.length} concluídas)`;
+            document.getElementById('progressTitle').textContent = `Progresso - ${state.activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'}`;
+            document.getElementById('progressPercentage').textContent = `${percentage.toFixed(0)}%`;
+            document.getElementById('progressSteps').textContent = `${completed}/${steps.length} concluídas`;
             document.getElementById('progressBar').style.width = `${percentage}%`;
-            document.getElementById('progressBar').className = `h-3 rounded-full transition-all duration-500 ${state.activeTab === 'arrecadacao' ? 'bg-gradient-blue' : 'bg-gradient-green'}`;
             
             if (current) {
-                document.getElementById('currentStepText').textContent = `${state.activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'} - Etapa Atual: ${current.title}`;
-                document.getElementById('currentStatus').style.display = 'block';
+                document.getElementById('currentStepText').textContent = `Etapa atual: ${current.title}`;
+            } else if (completed === steps.length) {
+                document.getElementById('currentStepText').textContent = 'Todas as etapas concluídas!';
             } else {
-                document.getElementById('currentStatus').style.display = 'none';
+                document.getElementById('currentStepText').textContent = 'Aguardando início...';
             }
         }
 
@@ -270,13 +306,15 @@
             const arrecadacaoStats = getStepStats('arrecadacao');
             const folhaStats = getStepStats('folha');
 
-            document.getElementById('arrecadacaoCount').textContent = `${arrecadacaoStats.completed}/8`;
+            // Arrecadação
+            document.getElementById('arrecadacaoProgress').textContent = `${arrecadacaoStats.completed}/8`;
             document.getElementById('arrecadacaoCompleted').textContent = arrecadacaoStats.completed;
             document.getElementById('arrecadacaoCurrent').textContent = arrecadacaoStats.current ? arrecadacaoStats.current.title : 'Nenhuma';
             document.getElementById('arrecadacaoPending').textContent = arrecadacaoStats.pending;
             document.getElementById('badgeArrecadacao').textContent = `${arrecadacaoStats.completed}/8`;
 
-            document.getElementById('folhaCount').textContent = `${folhaStats.completed}/8`;
+            // Folha
+            document.getElementById('folhaProgress').textContent = `${folhaStats.completed}/8`;
             document.getElementById('folhaCompleted').textContent = folhaStats.completed;
             document.getElementById('folhaCurrent').textContent = folhaStats.current ? folhaStats.current.title : 'Nenhuma';
             document.getElementById('folhaPending').textContent = folhaStats.pending;
@@ -284,42 +322,23 @@
         }
 
         function updateTabs() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('tab-active', 'text-blue-600', 'text-green-600', 'font-medium');
-                btn.classList.add('text-gray-600');
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.classList.remove('tab-active');
+                tab.classList.add('border-transparent', 'text-gray-500');
             });
 
-            const activeBtn = document.getElementById(state.activeTab === 'arrecadacao' ? 'tabArrecadacao' : 'tabFolha');
-            activeBtn.classList.remove('text-gray-600');
-            activeBtn.classList.add('tab-active', state.activeTab === 'arrecadacao' ? 'text-blue-600' : 'text-green-600', 'font-medium');
+            const activeTab = document.getElementById(state.activeTab === 'arrecadacao' ? 'tabArrecadacao' : 'tabFolha');
+            activeTab.classList.add('tab-active');
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
         }
 
         function render() {
-            renderFlowchart();
+            renderSteps();
             updateProgress();
             updateSummary();
             updateTabs();
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-        }
-
-        function moveToNextStep() {
-            const steps = getCurrentSteps();
-            const currentIndex = steps.findIndex(s => s.status === 'current');
-            if (currentIndex < steps.length - 1) {
-                steps[currentIndex].status = 'completed';
-                steps[currentIndex + 1].status = 'current';
-                render();
-            }
-        }
-
-        function moveToPreviousStep() {
-            const steps = getCurrentSteps();
-            const currentIndex = steps.findIndex(s => s.status === 'current');
-            if (currentIndex > 0) {
-                steps[currentIndex].status = 'pending';
-                steps[currentIndex - 1].status = 'current';
-                render();
-            }
         }
 
         // Event Listeners
@@ -331,41 +350,6 @@
         document.getElementById('tabFolha').addEventListener('click', () => {
             state.activeTab = 'folha';
             render();
-        });
-
-        document.getElementById('adminBtn').addEventListener('click', () => {
-            document.getElementById('loginBox').classList.toggle('hidden');
-        });
-
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            if (document.getElementById('passwordInput').value === 'admin123') {
-                state.isAdmin = true;
-                document.getElementById('adminBtn').classList.add('hidden');
-                document.getElementById('adminControls').classList.remove('hidden');
-                document.getElementById('loginBox').classList.add('hidden');
-                document.getElementById('passwordInput').value = '';
-            } else {
-                alert('Senha incorreta!');
-            }
-        });
-
-        document.getElementById('passwordInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') document.getElementById('loginBtn').click();
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            state.isAdmin = false;
-            document.getElementById('adminBtn').classList.remove('hidden');
-            document.getElementById('adminControls').classList.add('hidden');
-        });
-
-        document.getElementById('nextBtn').addEventListener('click', moveToNextStep);
-        document.getElementById('prevBtn').addEventListener('click', moveToPreviousStep);
-
-        document.getElementById('saveBtn').addEventListener('click', () => {
-            downloadJSON(state.data.arrecadacao, 'arrecadacao.json');
-            downloadJSON(state.data.folha, 'folha.json');
-            alert('Arquivos JSON baixados! Substitua os arquivos no repositório.');
         });
 
         // Auto-reload a cada 10 segundos
