@@ -27,13 +27,13 @@
     "id": 5,
     "title": "Upload Backup Storage",
     "description": "Enviar backup para armazenamento em nuvem",
-    "status": "current"
+    "status": "completed"
   },
   {
     "id": 6,
     "title": "Restore SQL SERVER Servidor",
     "description": "Restaurar backup no servidor de produção",
-    "status": "pending"
+    "status": "current"
   },
   {
     "id": 7,
