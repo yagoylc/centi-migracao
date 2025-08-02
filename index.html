@@ -3,29 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Migração de Dados - Arrecadação & Folha de Pagamento</title>
+    <title>Migração de Dados - Arrecadação & Folha</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .animate-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-        .transition-all {
-            transition: all 0.3s ease;
-        }
-        .bg-gradient-blue {
-            background: linear-gradient(to right, #3b82f6, #2563eb);
-        }
-        .bg-gradient-green {
-            background: linear-gradient(to right, #10b981, #059669);
-        }
-        .tab-active {
-            background: white;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
+        .animate-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .transition-all { transition: all 0.3s ease; }
+        .bg-gradient-blue { background: linear-gradient(to right, #3b82f6, #2563eb); }
+        .bg-gradient-green { background: linear-gradient(to right, #10b981, #059669); }
+        .tab-active { background: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -38,24 +24,17 @@
                     <h1 class="text-4xl font-bold text-slate-800 mb-4">
                         Migração de Dados - Firebird → SQL Server
                     </h1>
-                    <p class="text-lg text-slate-600">
-                        Acompanhamento em Tempo Real
-                    </p>
+                    <p class="text-lg text-slate-600">Acompanhamento em Tempo Real</p>
                 </div>
                 <div class="flex flex-col items-end space-y-2">
                     <button id="adminBtn" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all text-sm">
                         ✏️ Admin
                     </button>
                     <div id="adminControls" class="hidden flex space-x-2">
-                        <button id="prevBtn" class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all text-sm">
-                            ← Anterior
-                        </button>
-                        <button id="nextBtn" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm">
-                            Próximo →
-                        </button>
-                        <button id="logoutBtn" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
-                            ✕
-                        </button>
+                        <button id="prevBtn" class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all text-sm">← Anterior</button>
+                        <button id="nextBtn" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm">Próximo →</button>
+                        <button id="saveBtn" class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all text-sm">💾 Baixar</button>
+                        <button id="logoutBtn" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">✕</button>
                     </div>
                     <div class="text-xs text-slate-500">
                         🔄 Atualizado: <span id="lastUpdate"></span>
@@ -66,13 +45,10 @@
             <!-- Login Admin -->
             <div id="loginBox" class="hidden mb-6 p-4 bg-white rounded-lg shadow-lg max-w-md mx-auto">
                 <div class="flex space-x-2">
-                    <input id="passwordInput" type="password" placeholder="Senha admin" 
-                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <button id="loginBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
-                        Entrar
-                    </button>
+                    <input id="passwordInput" type="password" placeholder="Senha admin" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <button id="loginBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">Entrar</button>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Senha padrão: admin123</p>
+                <p class="text-xs text-gray-500 mt-2">Senha: admin123</p>
             </div>
         </div>
 
@@ -81,11 +57,11 @@
             <div class="flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg max-w-md mx-auto">
                 <button id="tabArrecadacao" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all tab-active text-blue-600 font-medium">
                     💳 <span class="font-semibold ml-2">Arrecadação</span>
-                    <span id="badgeArrecadacao" class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">2/8</span>
+                    <span id="badgeArrecadacao" class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">-/8</span>
                 </button>
-                <button id="tabFolha" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all text-gray-600 hover:text-gray-800">
+                <button id="tabFolha" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all text-gray-600">
                     👥 <span class="font-semibold ml-2">Folha de Pagamento</span>
-                    <span id="badgeFolha" class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">1/8</span>
+                    <span id="badgeFolha" class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">-/8</span>
                 </button>
             </div>
         </div>
@@ -94,80 +70,72 @@
         <div id="currentStatus" class="text-center mb-8">
             <div class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 rounded-xl border border-blue-200">
                 <span class="animate-pulse mr-2">⏰</span>
-                <span class="font-semibold" id="currentStepText">
-                    Arrecadação - Etapa Atual: Convert SQL SERVER
-                </span>
+                <span class="font-semibold" id="currentStepText">Carregando...</span>
             </div>
         </div>
 
         <!-- Progress Bar -->
         <div class="mb-12">
             <div class="flex justify-between items-center mb-4">
-                <span class="text-sm font-medium text-slate-600" id="progressLabel">
-                    Progresso - Arrecadação
-                </span>
-                <span class="text-sm font-medium text-slate-600" id="progressText">
-                    25.0% (2/8 concluídas)
-                </span>
+                <span class="text-sm font-medium text-slate-600" id="progressLabel">Progresso</span>
+                <span class="text-sm font-medium text-slate-600" id="progressText">0% (0/8)</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-3">
-                <div id="progressBar" class="h-3 rounded-full transition-all duration-500 bg-gradient-blue" style="width: 25%"></div>
+                <div id="progressBar" class="h-3 rounded-full transition-all duration-500 bg-gradient-blue" style="width: 0%"></div>
             </div>
         </div>
 
         <!-- Flowchart -->
         <div id="flowchart" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Os cards serão gerados aqui pelo JavaScript -->
+            <div class="text-center text-gray-500 col-span-full">Carregando dados...</div>
         </div>
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-            <!-- Arrecadação Summary -->
             <div class="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
                         <span class="text-2xl mr-2">💳</span>
                         <h3 class="font-bold text-blue-700">Arrecadação</h3>
                     </div>
-                    <div id="arrecadacaoCount" class="text-2xl font-bold text-blue-600">2/8</div>
+                    <div id="arrecadacaoCount" class="text-2xl font-bold text-blue-600">-/8</div>
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between text-sm">
                         <span class="text-green-600">Concluídas:</span>
-                        <span class="font-semibold" id="arrecadacaoCompleted">2</span>
+                        <span class="font-semibold" id="arrecadacaoCompleted">-</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-blue-600">Atual:</span>
-                        <span class="font-semibold" id="arrecadacaoCurrent">Convert SQL SERVER</span>
+                        <span class="font-semibold" id="arrecadacaoCurrent">-</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600">Pendentes:</span>
-                        <span class="font-semibold" id="arrecadacaoPending">5</span>
+                        <span class="font-semibold" id="arrecadacaoPending">-</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Folha Summary -->
             <div class="bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
                         <span class="text-2xl mr-2">👥</span>
                         <h3 class="font-bold text-green-700">Folha de Pagamento</h3>
                     </div>
-                    <div id="folhaCount" class="text-2xl font-bold text-green-600">1/8</div>
+                    <div id="folhaCount" class="text-2xl font-bold text-green-600">-/8</div>
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between text-sm">
                         <span class="text-green-600">Concluídas:</span>
-                        <span class="font-semibold" id="folhaCompleted">1</span>
+                        <span class="font-semibold" id="folhaCompleted">-</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-blue-600">Atual:</span>
-                        <span class="font-semibold" id="folhaCurrent">Restore Firebird</span>
+                        <span class="font-semibold" id="folhaCurrent">-</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600">Pendentes:</span>
-                        <span class="font-semibold" id="folhaPending">6</span>
+                        <span class="font-semibold" id="folhaPending">-</span>
                     </div>
                 </div>
             </div>
@@ -175,58 +143,49 @@
     </div>
 
     <script>
-        // Dados iniciais
-        const initialData = {
-            arrecadacao: [
-                { id: 1, title: "Backup Firebird", description: "Criar backup completo do banco Firebird - Arrecadação", icon: "💾", status: "completed" },
-                { id: 2, title: "Restore Firebird", description: "Restaurar backup do Firebird para ambiente de trabalho", icon: "📥", status: "completed" },
-                { id: 3, title: "Convert SQL SERVER", description: "Conversão dos dados do Firebird para SQL Server", icon: "⚙️", status: "current" },
-                { id: 4, title: "Backup SQL SERVER", description: "Criar backup do banco SQL Server convertido", icon: "💾", status: "pending" },
-                { id: 5, title: "Upload Backup Storage", description: "Enviar backup para armazenamento em nuvem", icon: "☁️", status: "pending" },
-                { id: 6, title: "Restore SQL SERVER Servidor", description: "Restaurar backup no servidor de produção", icon: "📥", status: "pending" },
-                { id: 7, title: "Executar Scripts SQL", description: "Executar scripts de migração e ajustes finais", icon: "⚙️", status: "pending" },
-                { id: 8, title: "Entrega", description: "Finalização e entrega do projeto de migração", icon: "🚚", status: "pending" }
-            ],
-            folha: [
-                { id: 1, title: "Backup Firebird", description: "Criar backup completo do banco Firebird - Folha", icon: "💾", status: "completed" },
-                { id: 2, title: "Restore Firebird", description: "Restaurar backup do Firebird para ambiente de trabalho", icon: "📥", status: "current" },
-                { id: 3, title: "Convert SQL SERVER", description: "Conversão dos dados do Firebird para SQL Server", icon: "⚙️", status: "pending" },
-                { id: 4, title: "Backup SQL SERVER", description: "Criar backup do banco SQL Server convertido", icon: "💾", status: "pending" },
-                { id: 5, title: "Upload Backup Storage", description: "Enviar backup para armazenamento em nuvem", icon: "☁️", status: "pending" },
-                { id: 6, title: "Restore SQL SERVER Servidor", description: "Restaurar backup no servidor de produção", icon: "📥", status: "pending" },
-                { id: 7, title: "Executar Scripts SQL", description: "Executar scripts de migração e ajustes finais", icon: "⚙️", status: "pending" },
-                { id: 8, title: "Entrega", description: "Finalização e entrega do projeto de migração", icon: "🚚", status: "pending" }
-            ]
-        };
-
-        // Estado da aplicação
         let state = {
             activeTab: 'arrecadacao',
             isAdmin: false,
-            data: loadData() || initialData
+            data: { arrecadacao: [], folha: [] }
         };
 
         // Funções utilitárias
-        function loadData() {
-            const saved = localStorage.getItem('migrationData');
-            return saved ? JSON.parse(saved) : null;
+        async function loadJSON(filename) {
+            try {
+                const response = await fetch(filename + '?t=' + Date.now());
+                return await response.json();
+            } catch (error) {
+                console.error('Erro ao carregar', filename, error);
+                return null;
+            }
         }
 
-        function saveData() {
-            localStorage.setItem('migrationData', JSON.stringify(state.data));
-            updateLastUpdate();
+        async function loadData() {
+            const arrecadacao = await loadJSON('arrecadacao.json');
+            const folha = await loadJSON('folha.json');
+            
+            if (arrecadacao) state.data.arrecadacao = arrecadacao;
+            if (folha) state.data.folha = folha;
+            
+            render();
         }
 
-        function updateLastUpdate() {
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        function downloadJSON(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         function getCurrentSteps() {
-            return state.data[state.activeTab];
+            return state.data[state.activeTab] || [];
         }
 
         function getStepStats(type) {
-            const steps = state.data[type];
+            const steps = state.data[type] || [];
             const completed = steps.filter(s => s.status === 'completed').length;
             const current = steps.find(s => s.status === 'current');
             const pending = steps.filter(s => s.status === 'pending').length;
@@ -234,44 +193,34 @@
         }
 
         function getStatusColor(status) {
-            switch (status) {
-                case 'completed': return 'bg-green-500';
-                case 'current': return 'bg-blue-500';
-                default: return 'bg-gray-400';
-            }
+            return status === 'completed' ? 'bg-green-500' : status === 'current' ? 'bg-blue-500' : 'bg-gray-400';
         }
 
         function getStatusBorder(status) {
-            switch (status) {
-                case 'completed': return 'border-green-500 shadow-green-200';
-                case 'current': return 'border-blue-500 shadow-blue-200 shadow-lg';
-                default: return 'border-gray-300';
-            }
+            return status === 'completed' ? 'border-green-500 shadow-green-200' : 
+                   status === 'current' ? 'border-blue-500 shadow-blue-200 shadow-lg' : 'border-gray-300';
         }
 
         function getStatusIcon(status) {
-            switch (status) {
-                case 'completed': return '✅';
-                case 'current': return '<span class="animate-pulse">⏰</span>';
-                default: return '⭕';
-            }
+            return status === 'completed' ? '✅' : status === 'current' ? '<span class="animate-pulse">⏰</span>' : '⭕';
         }
 
         function getStatusBadge(status) {
-            switch (status) {
-                case 'completed': 
-                    return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">✅ Concluído</span>';
-                case 'current': 
-                    return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">⏰ Em Andamento</span>';
-                default: 
-                    return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Pendente</span>';
-            }
+            if (status === 'completed') 
+                return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">✅ Concluído</span>';
+            if (status === 'current') 
+                return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">⏰ Em Andamento</span>';
+            return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Pendente</span>';
         }
 
-        // Renderização
         function renderFlowchart() {
             const steps = getCurrentSteps();
             const flowchart = document.getElementById('flowchart');
+            
+            if (steps.length === 0) {
+                flowchart.innerHTML = '<div class="text-center text-gray-500 col-span-full">Nenhum dado encontrado</div>';
+                return;
+            }
             
             flowchart.innerHTML = steps.map((step, index) => `
                 <div class="relative">
@@ -302,7 +251,7 @@
             const steps = getCurrentSteps();
             const completed = steps.filter(s => s.status === 'completed').length;
             const current = steps.find(s => s.status === 'current');
-            const percentage = (completed / steps.length) * 100;
+            const percentage = steps.length > 0 ? (completed / steps.length) * 100 : 0;
 
             document.getElementById('progressLabel').textContent = `Progresso - ${state.activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'}`;
             document.getElementById('progressText').textContent = `${percentage.toFixed(1)}% (${completed}/${steps.length} concluídas)`;
@@ -321,14 +270,12 @@
             const arrecadacaoStats = getStepStats('arrecadacao');
             const folhaStats = getStepStats('folha');
 
-            // Arrecadação
             document.getElementById('arrecadacaoCount').textContent = `${arrecadacaoStats.completed}/8`;
             document.getElementById('arrecadacaoCompleted').textContent = arrecadacaoStats.completed;
             document.getElementById('arrecadacaoCurrent').textContent = arrecadacaoStats.current ? arrecadacaoStats.current.title : 'Nenhuma';
             document.getElementById('arrecadacaoPending').textContent = arrecadacaoStats.pending;
             document.getElementById('badgeArrecadacao').textContent = `${arrecadacaoStats.completed}/8`;
 
-            // Folha
             document.getElementById('folhaCount').textContent = `${folhaStats.completed}/8`;
             document.getElementById('folhaCompleted').textContent = folhaStats.completed;
             document.getElementById('folhaCurrent').textContent = folhaStats.current ? folhaStats.current.title : 'Nenhuma';
@@ -337,8 +284,7 @@
         }
 
         function updateTabs() {
-            const tabButtons = document.querySelectorAll('.tab-btn');
-            tabButtons.forEach(btn => {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('tab-active', 'text-blue-600', 'text-green-600', 'font-medium');
                 btn.classList.add('text-gray-600');
             });
@@ -353,17 +299,15 @@
             updateProgress();
             updateSummary();
             updateTabs();
-            updateLastUpdate();
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
 
-        // Navegação entre passos
         function moveToNextStep() {
             const steps = getCurrentSteps();
             const currentIndex = steps.findIndex(s => s.status === 'current');
             if (currentIndex < steps.length - 1) {
                 steps[currentIndex].status = 'completed';
                 steps[currentIndex + 1].status = 'current';
-                saveData();
                 render();
             }
         }
@@ -374,7 +318,6 @@
             if (currentIndex > 0) {
                 steps[currentIndex].status = 'pending';
                 steps[currentIndex - 1].status = 'current';
-                saveData();
                 render();
             }
         }
@@ -395,22 +338,19 @@
         });
 
         document.getElementById('loginBtn').addEventListener('click', () => {
-            const password = document.getElementById('passwordInput').value;
-            if (password === 'admin123') {
+            if (document.getElementById('passwordInput').value === 'admin123') {
                 state.isAdmin = true;
                 document.getElementById('adminBtn').classList.add('hidden');
                 document.getElementById('adminControls').classList.remove('hidden');
                 document.getElementById('loginBox').classList.add('hidden');
                 document.getElementById('passwordInput').value = '';
             } else {
-                alert('Senha incorreta! Use: admin123');
+                alert('Senha incorreta!');
             }
         });
 
         document.getElementById('passwordInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
-            }
+            if (e.key === 'Enter') document.getElementById('loginBtn').click();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -422,17 +362,17 @@
         document.getElementById('nextBtn').addEventListener('click', moveToNextStep);
         document.getElementById('prevBtn').addEventListener('click', moveToPreviousStep);
 
-        // Verificação de atualizações em tempo real
-        setInterval(() => {
-            const savedData = loadData();
-            if (savedData && JSON.stringify(savedData) !== JSON.stringify(state.data)) {
-                state.data = savedData;
-                render();
-            }
-        }, 3000);
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            downloadJSON(state.data.arrecadacao, 'arrecadacao.json');
+            downloadJSON(state.data.folha, 'folha.json');
+            alert('Arquivos JSON baixados! Substitua os arquivos no repositório.');
+        });
 
-        // Inicialização
-        render();
+        // Auto-reload a cada 10 segundos
+        setInterval(loadData, 10000);
+
+        // Carregar dados iniciais
+        loadData();
     </script>
 </body>
 </html>
