@@ -4,695 +4,435 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Migração de Dados - Arrecadação & Folha de Pagamento</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        .bg-gradient-blue {
+            background: linear-gradient(to right, #3b82f6, #2563eb);
+        }
+        .bg-gradient-green {
+            background: linear-gradient(to right, #10b981, #059669);
+        }
+        .tab-active {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
-<body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { 
-            CheckCircle, Clock, Database, Upload, Download, 
-            Settings, Truck, RefreshCw, Edit3, Save, X, CreditCard, Users 
-        } = lucide;
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div class="max-w-6xl mx-auto p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="flex justify-between items-start mb-6">
+                <div></div>
+                <div>
+                    <h1 class="text-4xl font-bold text-slate-800 mb-4">
+                        Migração de Dados - Firebird → SQL Server
+                    </h1>
+                    <p class="text-lg text-slate-600">
+                        Acompanhamento em Tempo Real
+                    </p>
+                </div>
+                <div class="flex flex-col items-end space-y-2">
+                    <button id="adminBtn" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all text-sm">
+                        ✏️ Admin
+                    </button>
+                    <div id="adminControls" class="hidden flex space-x-2">
+                        <button id="prevBtn" class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all text-sm">
+                            ← Anterior
+                        </button>
+                        <button id="nextBtn" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm">
+                            Próximo →
+                        </button>
+                        <button id="logoutBtn" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
+                            ✕
+                        </button>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        🔄 Atualizado: <span id="lastUpdate"></span>
+                    </div>
+                </div>
+            </div>
 
-        const DualMigrationFlowchart = () => {
-            // Estados iniciais dos dois fluxogramas
-            const initialArrecadacaoSteps = [
-                {
-                    id: 1,
-                    title: "Backup Firebird",
-                    description: "Criar backup completo do banco Firebird - Arrecadação",
-                    icon: "Database",
-                    status: "completed"
-                },
-                {
-                    id: 2,
-                    title: "Restore Firebird",
-                    description: "Restaurar backup do Firebird para ambiente de trabalho",
-                    icon: "Download",
-                    status: "completed"
-                },
-                {
-                    id: 3,
-                    title: "Convert SQL SERVER",
-                    description: "Conversão dos dados do Firebird para SQL Server",
-                    icon: "Settings",
-                    status: "current"
-                },
-                {
-                    id: 4,
-                    title: "Backup SQL SERVER",
-                    description: "Criar backup do banco SQL Server convertido",
-                    icon: "Database",
-                    status: "pending"
-                },
-                {
-                    id: 5,
-                    title: "Upload Backup Storage",
-                    description: "Enviar backup para armazenamento em nuvem",
-                    icon: "Upload",
-                    status: "pending"
-                },
-                {
-                    id: 6,
-                    title: "Restore SQL SERVER Servidor",
-                    description: "Restaurar backup no servidor de produção",
-                    icon: "Download",
-                    status: "pending"
-                },
-                {
-                    id: 7,
-                    title: "Executar Scripts SQL",
-                    description: "Executar scripts de migração e ajustes finais",
-                    icon: "Settings",
-                    status: "pending"
-                },
-                {
-                    id: 8,
-                    title: "Entrega",
-                    description: "Finalização e entrega do projeto de migração",
-                    icon: "Truck",
-                    status: "pending"
-                }
-            ];
+            <!-- Login Admin -->
+            <div id="loginBox" class="hidden mb-6 p-4 bg-white rounded-lg shadow-lg max-w-md mx-auto">
+                <div class="flex space-x-2">
+                    <input id="passwordInput" type="password" placeholder="Senha admin" 
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <button id="loginBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
+                        Entrar
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Senha padrão: admin123</p>
+            </div>
+        </div>
 
-            const initialFolhaSteps = [
-                {
-                    id: 1,
-                    title: "Backup Firebird",
-                    description: "Criar backup completo do banco Firebird - Folha",
-                    icon: "Database",
-                    status: "completed"
-                },
-                {
-                    id: 2,
-                    title: "Restore Firebird",
-                    description: "Restaurar backup do Firebird para ambiente de trabalho",
-                    icon: "Download",
-                    status: "current"
-                },
-                {
-                    id: 3,
-                    title: "Convert SQL SERVER",
-                    description: "Conversão dos dados do Firebird para SQL Server",
-                    icon: "Settings",
-                    status: "pending"
-                },
-                {
-                    id: 4,
-                    title: "Backup SQL SERVER",
-                    description: "Criar backup do banco SQL Server convertido",
-                    icon: "Database",
-                    status: "pending"
-                },
-                {
-                    id: 5,
-                    title: "Upload Backup Storage",
-                    description: "Enviar backup para armazenamento em nuvem",
-                    icon: "Upload",
-                    status: "pending"
-                },
-                {
-                    id: 6,
-                    title: "Restore SQL SERVER Servidor",
-                    description: "Restaurar backup no servidor de produção",
-                    icon: "Download",
-                    status: "pending"
-                },
-                {
-                    id: 7,
-                    title: "Executar Scripts SQL",
-                    description: "Executar scripts de migração e ajustes finais",
-                    icon: "Settings",
-                    status: "pending"
-                },
-                {
-                    id: 8,
-                    title: "Entrega",
-                    description: "Finalização e entrega do projeto de migração",
-                    icon: "Truck",
-                    status: "pending"
-                }
-            ];
+        <!-- Tabs -->
+        <div class="mb-8">
+            <div class="flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg max-w-md mx-auto">
+                <button id="tabArrecadacao" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all tab-active text-blue-600 font-medium">
+                    💳 <span class="font-semibold ml-2">Arrecadação</span>
+                    <span id="badgeArrecadacao" class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">2/8</span>
+                </button>
+                <button id="tabFolha" class="tab-btn flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all text-gray-600 hover:text-gray-800">
+                    👥 <span class="font-semibold ml-2">Folha de Pagamento</span>
+                    <span id="badgeFolha" class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">1/8</span>
+                </button>
+            </div>
+        </div>
 
-            const [activeTab, setActiveTab] = useState('arrecadacao');
-            const [arrecadacaoSteps, setArrecadacaoSteps] = useState(() => {
-                const saved = localStorage.getItem('arrecadacaoSteps');
-                return saved ? JSON.parse(saved) : initialArrecadacaoSteps;
-            });
-            const [folhaSteps, setFolhaSteps] = useState(() => {
-                const saved = localStorage.getItem('folhaSteps');
-                return saved ? JSON.parse(saved) : initialFolhaSteps;
-            });
-            const [isAdmin, setIsAdmin] = useState(false);
-            const [adminPassword, setAdminPassword] = useState('');
-            const [showAdminLogin, setShowAdminLogin] = useState(false);
-            const [editingStep, setEditingStep] = useState(null);
-            const [lastUpdate, setLastUpdate] = useState(new Date());
+        <!-- Status Atual -->
+        <div id="currentStatus" class="text-center mb-8">
+            <div class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 rounded-xl border border-blue-200">
+                <span class="animate-pulse mr-2">⏰</span>
+                <span class="font-semibold" id="currentStepText">
+                    Arrecadação - Etapa Atual: Convert SQL SERVER
+                </span>
+            </div>
+        </div>
 
-            // Verificar atualizações em tempo real
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    const savedArrecadacao = localStorage.getItem('arrecadacaoSteps');
-                    const savedFolha = localStorage.getItem('folhaSteps');
-                    
-                    let updated = false;
-                    
-                    if (savedArrecadacao) {
-                        const parsedArrecadacao = JSON.parse(savedArrecadacao);
-                        if (JSON.stringify(parsedArrecadacao) !== JSON.stringify(arrecadacaoSteps)) {
-                            setArrecadacaoSteps(parsedArrecadacao);
-                            updated = true;
-                        }
-                    }
-                    
-                    if (savedFolha) {
-                        const parsedFolha = JSON.parse(savedFolha);
-                        if (JSON.stringify(parsedFolha) !== JSON.stringify(folhaSteps)) {
-                            setFolhaSteps(parsedFolha);
-                            updated = true;
-                        }
-                    }
-                    
-                    if (updated) {
-                        setLastUpdate(new Date());
-                    }
-                }, 3000);
+        <!-- Progress Bar -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-sm font-medium text-slate-600" id="progressLabel">
+                    Progresso - Arrecadação
+                </span>
+                <span class="text-sm font-medium text-slate-600" id="progressText">
+                    25.0% (2/8 concluídas)
+                </span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div id="progressBar" class="h-3 rounded-full transition-all duration-500 bg-gradient-blue" style="width: 25%"></div>
+            </div>
+        </div>
 
-                return () => clearInterval(interval);
-            }, [arrecadacaoSteps, folhaSteps]);
+        <!-- Flowchart -->
+        <div id="flowchart" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Os cards serão gerados aqui pelo JavaScript -->
+        </div>
 
-            // Função para salvar no localStorage
-            const saveSteps = (type, newSteps) => {
-                if (type === 'arrecadacao') {
-                    localStorage.setItem('arrecadacaoSteps', JSON.stringify(newSteps));
-                    setArrecadacaoSteps(newSteps);
-                } else {
-                    localStorage.setItem('folhaSteps', JSON.stringify(newSteps));
-                    setFolhaSteps(newSteps);
-                }
-                localStorage.setItem('lastUpdate', new Date().toISOString());
-                setLastUpdate(new Date());
-            };
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+            <!-- Arrecadação Summary -->
+            <div class="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-2">💳</span>
+                        <h3 class="font-bold text-blue-700">Arrecadação</h3>
+                    </div>
+                    <div id="arrecadacaoCount" class="text-2xl font-bold text-blue-600">2/8</div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-green-600">Concluídas:</span>
+                        <span class="font-semibold" id="arrecadacaoCompleted">2</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-blue-600">Atual:</span>
+                        <span class="font-semibold" id="arrecadacaoCurrent">Convert SQL SERVER</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Pendentes:</span>
+                        <span class="font-semibold" id="arrecadacaoPending">5</span>
+                    </div>
+                </div>
+            </div>
 
-            // Obter steps atuais baseado na aba ativa
-            const getCurrentSteps = () => {
-                return activeTab === 'arrecadacao' ? arrecadacaoSteps : folhaSteps;
-            };
+            <!-- Folha Summary -->
+            <div class="bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-2">👥</span>
+                        <h3 class="font-bold text-green-700">Folha de Pagamento</h3>
+                    </div>
+                    <div id="folhaCount" class="text-2xl font-bold text-green-600">1/8</div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-green-600">Concluídas:</span>
+                        <span class="font-semibold" id="folhaCompleted">1</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-blue-600">Atual:</span>
+                        <span class="font-semibold" id="folhaCurrent">Restore Firebird</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Pendentes:</span>
+                        <span class="font-semibold" id="folhaPending">6</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Login admin
-            const handleAdminLogin = () => {
-                if (adminPassword === 'admin123') {
-                    setIsAdmin(true);
-                    setShowAdminLogin(false);
-                    setAdminPassword('');
-                } else {
-                    alert('Senha incorreta! Use: admin123');
-                }
-            };
-
-            // Alterar status do passo
-            const changeStepStatus = (stepId, newStatus) => {
-                const currentSteps = getCurrentSteps();
-                let newSteps = currentSteps.map(step => 
-                    newStatus === 'current' && step.status === 'current'
-                        ? { ...step, status: 'pending' }
-                        : step
-                );
-                
-                newSteps = newSteps.map(step => 
-                    step.id === stepId ? { ...step, status: newStatus } : step
-                );
-                
-                saveSteps(activeTab, newSteps);
-            };
-
-            // Mover para próximo passo
-            const moveToNextStep = () => {
-                const currentSteps = getCurrentSteps();
-                const currentIndex = currentSteps.findIndex(step => step.status === 'current');
-                if (currentIndex < currentSteps.length - 1) {
-                    const newSteps = currentSteps.map((step, index) => {
-                        if (index === currentIndex) return { ...step, status: 'completed' };
-                        if (index === currentIndex + 1) return { ...step, status: 'current' };
-                        return step;
-                    });
-                    saveSteps(activeTab, newSteps);
-                }
-            };
-
-            // Mover para passo anterior
-            const moveToPreviousStep = () => {
-                const currentSteps = getCurrentSteps();
-                const currentIndex = currentSteps.findIndex(step => step.status === 'current');
-                if (currentIndex > 0) {
-                    const newSteps = currentSteps.map((step, index) => {
-                        if (index === currentIndex) return { ...step, status: 'pending' };
-                        if (index === currentIndex - 1) return { ...step, status: 'current' };
-                        return step;
-                    });
-                    saveSteps(activeTab, newSteps);
-                }
-            };
-
-            // Editar passo
-            const saveStepEdit = (stepId, newTitle, newDescription) => {
-                const currentSteps = getCurrentSteps();
-                const newSteps = currentSteps.map(step => 
-                    step.id === stepId 
-                        ? { ...step, title: newTitle, description: newDescription }
-                        : step
-                );
-                saveSteps(activeTab, newSteps);
-                setEditingStep(null);
-            };
-
-            // Componentes de ícones
-            const iconComponents = {
-                Database: Database,
-                Download: Download,
-                Upload: Upload,
-                Settings: Settings,
-                Truck: Truck
-            };
-
-            const getStatusIcon = (status) => {
-                switch (status) {
-                    case 'completed':
-                        return React.createElement(CheckCircle, { className: "w-5 h-5 text-white" });
-                    case 'current':
-                        return React.createElement(Clock, { className: "w-5 h-5 text-white animate-pulse" });
-                    default:
-                        return React.createElement('div', { className: "w-5 h-5 rounded-full bg-white opacity-50" });
-                }
-            };
-
-            const getStatusColor = (status) => {
-                switch (status) {
-                    case 'completed': return 'bg-green-500';
-                    case 'current': return 'bg-blue-500';
-                    default: return 'bg-gray-400';
-                }
-            };
-
-            const getStatusBorder = (status) => {
-                switch (status) {
-                    case 'completed': return 'border-green-500 shadow-green-200';
-                    case 'current': return 'border-blue-500 shadow-blue-200 shadow-lg';
-                    default: return 'border-gray-300';
-                }
-            };
-
-            const getTextColor = (status) => {
-                switch (status) {
-                    case 'completed': return 'text-green-700';
-                    case 'current': return 'text-blue-700';
-                    default: return 'text-gray-500';
-                }
-            };
-
-            const steps = getCurrentSteps();
-            const completedSteps = steps.filter(step => step.status === 'completed').length;
-            const currentStep = steps.find(step => step.status === 'current');
-            const progressPercentage = (completedSteps / steps.length) * 100;
-
-            const getTabInfo = (tabType) => {
-                const tabSteps = tabType === 'arrecadacao' ? arrecadacaoSteps : folhaSteps;
-                const completed = tabSteps.filter(step => step.status === 'completed').length;
-                const current = tabSteps.find(step => step.status === 'current');
-                return { completed, current, total: tabSteps.length };
-            };
-
-            const EditStepForm = ({ step, onSave, onCancel }) => {
-                const [title, setTitle] = useState(step.title);
-                const [description, setDescription] = useState(step.description);
-
-                const handleSave = () => {
-                    onSave(step.id, title, description);
-                };
-
-                return React.createElement('div', { className: 'space-y-4' }, [
-                    React.createElement('input', {
-                        key: 'title',
-                        type: 'text',
-                        value: title,
-                        onChange: (e) => setTitle(e.target.value),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm',
-                        placeholder: 'Título'
-                    }),
-                    React.createElement('textarea', {
-                        key: 'description',
-                        value: description,
-                        onChange: (e) => setDescription(e.target.value),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm',
-                        placeholder: 'Descrição',
-                        rows: 3
-                    }),
-                    React.createElement('div', { key: 'buttons', className: 'flex space-x-2' }, [
-                        React.createElement('button', {
-                            key: 'save',
-                            onClick: handleSave,
-                            className: 'flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm'
-                        }, [
-                            React.createElement(Save, { key: 'icon', className: 'w-4 h-4 inline mr-1' }),
-                            'Salvar'
-                        ]),
-                        React.createElement('button', {
-                            key: 'cancel',
-                            onClick: onCancel,
-                            className: 'flex-1 px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm'
-                        }, [
-                            React.createElement(X, { key: 'icon', className: 'w-4 h-4 inline mr-1' }),
-                            'Cancelar'
-                        ])
-                    ])
-                ]);
-            };
-
-            return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8' },
-                React.createElement('div', { className: 'max-w-6xl mx-auto' }, [
-                    // Header
-                    React.createElement('div', { key: 'header', className: 'text-center mb-8' }, [
-                        React.createElement('div', { key: 'header-content', className: 'flex justify-between items-start mb-6' }, [
-                            React.createElement('div', { key: 'left' }),
-                            React.createElement('div', { key: 'center' }, [
-                                React.createElement('h1', { key: 'title', className: 'text-4xl font-bold text-slate-800 mb-4' },
-                                    'Migração de Dados - Firebird → SQL Server'
-                                ),
-                                React.createElement('p', { key: 'subtitle', className: 'text-lg text-slate-600' },
-                                    'Acompanhamento em Tempo Real'
-                                )
-                            ]),
-                            React.createElement('div', { key: 'right', className: 'flex flex-col items-end space-y-2' }, [
-                                !isAdmin ? 
-                                    React.createElement('button', {
-                                        key: 'admin-btn',
-                                        onClick: () => setShowAdminLogin(!showAdminLogin),
-                                        className: 'px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm'
-                                    }, [
-                                        React.createElement(Edit3, { key: 'icon', className: 'w-4 h-4 inline mr-2' }),
-                                        'Admin'
-                                    ])
-                                    :
-                                    React.createElement('div', { key: 'admin-controls', className: 'flex space-x-2' }, [
-                                        React.createElement('button', {
-                                            key: 'prev',
-                                            onClick: moveToPreviousStep,
-                                            className: 'px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm',
-                                            disabled: steps.findIndex(step => step.status === 'current') === 0
-                                        }, '← Anterior'),
-                                        React.createElement('button', {
-                                            key: 'next',
-                                            onClick: moveToNextStep,
-                                            className: 'px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm',
-                                            disabled: steps.findIndex(step => step.status === 'current') === steps.length - 1
-                                        }, 'Próximo →'),
-                                        React.createElement('button', {
-                                            key: 'logout',
-                                            onClick: () => setIsAdmin(false),
-                                            className: 'px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm'
-                                        }, React.createElement(X, { className: 'w-4 h-4' }))
-                                    ]),
-                                React.createElement('div', { key: 'timestamp', className: 'text-xs text-slate-500' }, [
-                                    React.createElement(RefreshCw, { key: 'icon', className: 'w-3 h-3 inline mr-1' }),
-                                    `Atualizado: ${lastUpdate.toLocaleTimeString()}`
-                                ])
-                            ])
-                        ]),
-                        // Login Admin
-                        showAdminLogin && React.createElement('div', { key: 'login', className: 'mb-6 p-4 bg-white rounded-lg shadow-lg max-w-md mx-auto' }, [
-                            React.createElement('div', { key: 'login-form', className: 'flex space-x-2' }, [
-                                React.createElement('input', {
-                                    key: 'password',
-                                    type: 'password',
-                                    value: adminPassword,
-                                    onChange: (e) => setAdminPassword(e.target.value),
-                                    placeholder: 'Senha admin',
-                                    className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                                    onKeyPress: (e) => e.key === 'Enter' && handleAdminLogin()
-                                }),
-                                React.createElement('button', {
-                                    key: 'login-btn',
-                                    onClick: handleAdminLogin,
-                                    className: 'px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors'
-                                }, 'Entrar')
-                            ]),
-                            React.createElement('p', { key: 'hint', className: 'text-xs text-gray-500 mt-2' }, 'Senha padrão: admin123')
-                        ])
-                    ]),
-                    
-                    // Tabs
-                    React.createElement('div', { key: 'tabs', className: 'mb-8' },
-                        React.createElement('div', { className: 'flex justify-center space-x-1 bg-gray-100 p-1 rounded-lg max-w-md mx-auto' }, [
-                            React.createElement('button', {
-                                key: 'tab-arrecadacao',
-                                onClick: () => setActiveTab('arrecadacao'),
-                                className: `flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all duration-200 ${
-                                    activeTab === 'arrecadacao'
-                                        ? 'bg-white text-blue-600 shadow-sm font-medium'
-                                        : 'text-gray-600 hover:text-gray-800'
-                                }`
-                            }, [
-                                React.createElement(CreditCard, { key: 'icon', className: 'w-5 h-5 mr-2' }),
-                                React.createElement('span', { key: 'text', className: 'font-semibold' }, 'Arrecadação'),
-                                React.createElement('span', { key: 'badge', className: 'ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full' },
-                                    `${getTabInfo('arrecadacao').completed}/8`
-                                )
-                            ]),
-                            React.createElement('button', {
-                                key: 'tab-folha',
-                                onClick: () => setActiveTab('folha'),
-                                className: `flex-1 flex items-center justify-center px-4 py-3 rounded-md transition-all duration-200 ${
-                                    activeTab === 'folha'
-                                        ? 'bg-white text-green-600 shadow-sm font-medium'
-                                        : 'text-gray-600 hover:text-gray-800'
-                                }`
-                            }, [
-                                React.createElement(Users, { key: 'icon', className: 'w-5 h-5 mr-2' }),
-                                React.createElement('span', { key: 'text', className: 'font-semibold' }, 'Folha de Pagamento'),
-                                React.createElement('span', { key: 'badge', className: 'ml-2 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full' },
-                                    `${getTabInfo('folha').completed}/8`
-                                )
-                            ])
-                        ])
-                    ),
-
-                    // Status Atual
-                    currentStep && React.createElement('div', { key: 'current-status', className: 'text-center mb-8' },
-                        React.createElement('div', { className: 'inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 rounded-xl border border-blue-200' }, [
-                            React.createElement(Clock, { key: 'icon', className: 'w-5 h-5 mr-2 animate-pulse' }),
-                            React.createElement('span', { key: 'text', className: 'font-semibold' },
-                                `${activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'} - Etapa Atual: ${currentStep.title}`
-                            )
-                        ])
-                    ),
-
-                    // Progress Bar
-                    React.createElement('div', { key: 'progress', className: 'mb-12' }, [
-                        React.createElement('div', { key: 'progress-header', className: 'flex justify-between items-center mb-4' }, [
-                            React.createElement('span', { key: 'label', className: 'text-sm font-medium text-slate-600' },
-                                `Progresso - ${activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'}`
-                            ),
-                            React.createElement('span', { key: 'percentage', className: 'text-sm font-medium text-slate-600' },
-                                `${progressPercentage.toFixed(1)}% (${completedSteps}/${steps.length} concluídas)`
-                            )
-                        ]),
-                        React.createElement('div', { key: 'progress-bar', className: 'w-full bg-gray-200 rounded-full h-3' },
-                            React.createElement('div', {
-                                className: `h-3 rounded-full transition-all duration-500 ${
-                                    activeTab === 'arrecadacao' 
-                                        ? 'bg-gradient-to-r from-blue-500 to-blue-600' 
-                                        : 'bg-gradient-to-r from-green-500 to-green-600'
-                                }`,
-                                style: { width: `${progressPercentage}%` }
-                            })
-                        )
-                    ]),
-
-                    // Flowchart
-                    React.createElement('div', { key: 'flowchart', className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6' },
-                        steps.map((step, index) => {
-                            const IconComponent = iconComponents[step.icon] || Database;
-                            const isEditing = editingStep === step.id;
-                            
-                            return React.createElement('div', { key: step.id, className: 'relative' }, [
-                                // Connection Line
-                                index < steps.length - 1 && React.createElement('div', { 
-                                    key: 'line', 
-                                    className: 'hidden lg:block absolute top-16 -right-3 w-6 h-0.5 bg-gradient-to-r from-slate-300 to-slate-200 z-0' 
-                                }),
-                                
-                                // Step Card
-                                React.createElement('div', { 
-                                    key: 'card',
-                                    className: `relative bg-white rounded-xl border-2 ${getStatusBorder(step.status)} p-6 hover:shadow-xl transition-all duration-300 z-10` 
-                                }, [
-                                    // Admin Controls
-                                    isAdmin && !isEditing && React.createElement('div', { key: 'admin-controls', className: 'absolute top-2 right-2 flex space-x-1' }, [
-                                        React.createElement('button', {
-                                            key: 'edit',
-                                            onClick: () => setEditingStep(step.id),
-                                            className: 'p-1 bg-blue-500 text-white rounded hover:bg-blue-600'
-                                        }, React.createElement(Edit3, { className: 'w-3 h-3' })),
-                                        React.createElement('select', {
-                                            key: 'status',
-                                            value: step.status,
-                                            onChange: (e) => changeStepStatus(step.id, e.target.value),
-                                            className: 'text-xs p-1 border rounded'
-                                        }, [
-                                            React.createElement('option', { key: 'pending', value: 'pending' }, 'Pendente'),
-                                            React.createElement('option', { key: 'current', value: 'current' }, 'Atual'),
-                                            React.createElement('option', { key: 'completed', value: 'completed' }, 'Concluído')
-                                        ])
-                                    ]),
-
-                                    // Edit Mode or Normal Mode
-                                    isEditing ? 
-                                        React.createElement(EditStepForm, {
-                                            key: 'edit-form',
-                                            step: step,
-                                            onSave: saveStepEdit,
-                                            onCancel: () => setEditingStep(null)
-                                        })
-                                        :
-                                        [
-                                            // Step Number
-                                            React.createElement('div', { key: 'step-number', className: 'flex items-center justify-between mb-4' }, [
-                                                React.createElement('div', { 
-                                                    key: 'status-circle',
-                                                    className: `${getStatusColor(step.status)} rounded-full w-12 h-12 flex items-center justify-center` 
-                                                }, getStatusIcon(step.status)),
-                                                React.createElement('span', { 
-                                                    key: 'number',
-                                                    className: 'text-2xl font-bold text-slate-300' 
-                                                }, step.id.toString().padStart(2, '0'))
-                                            ]),
-
-                                            // Icon
-                                            React.createElement('div', { key: 'icon', className: 'flex justify-center mb-4' },
-                                                React.createElement('div', { className: `${getStatusColor(step.status)} rounded-lg p-3` },
-                                                    React.createElement(IconComponent, { className: 'w-8 h-8 text-white' })
-                                                )
-                                            ),
-
-                                            // Content
-                                            React.createElement('div', { key: 'content', className: 'text-center' }, [
-                                                React.createElement('h3', { 
-                                                    key: 'title',
-                                                    className: `text-lg font-bold mb-2 ${getTextColor(step.status)}` 
-                                                }, step.title),
-                                                React.createElement('p', { 
-                                                    key: 'description',
-                                                    className: 'text-sm text-slate-600 leading-relaxed' 
-                                                }, step.description),
-                                                
-                                                // Status Badge
-                                                React.createElement('div', { key: 'badge', className: 'mt-4' }, 
-                                                    step.status === 'completed' ?
-                                                        React.createElement('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800' }, [
-                                                            React.createElement(CheckCircle, { key: 'icon', className: 'w-3 h-3 mr-1' }),
-                                                            'Concluído'
-                                                        ])
-                                                        : step.status === 'current' ?
-                                                        React.createElement('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 animate-pulse' }, [
-                                                            React.createElement(Clock, { key: 'icon', className: 'w-3 h-3 mr-1' }),
-                                                            'Em Andamento'
-                                                        ])
-                                                        :
-                                                        React.createElement('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600' },
-                                                            'Pendente'
-                                                        )
-                                                )
-                                            ])
-                                        ]
-                                ])
-                            ]);
-                        })
-                    ),
-
-                    // Summary Cards
-                    React.createElement('div', { key: 'summary', className: 'grid grid-cols-1 md:grid-cols-2 gap-6 mt-12' }, [
-                        // Arrecadação Summary
-                        React.createElement('div', { key: 'arrecadacao-summary', className: 'bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm' }, [
-                            React.createElement('div', { key: 'header', className: 'flex items-center justify-between mb-4' }, [
-                                React.createElement('div', { key: 'title', className: 'flex items-center' }, [
-                                    React.createElement(CreditCard, { key: 'icon', className: 'w-6 h-6 text-blue-500 mr-2' }),
-                                    React.createElement('h3', { key: 'text', className: 'font-bold text-blue-700' }, 'Arrecadação')
-                                ]),
-                                React.createElement('div', { key: 'count', className: 'text-2xl font-bold text-blue-600' },
-                                    `${getTabInfo('arrecadacao').completed}/8`
-                                )
-                            ]),
-                            React.createElement('div', { key: 'details', className: 'space-y-2' }, [
-                                React.createElement('div', { key: 'completed', className: 'flex justify-between text-sm' }, [
-                                    React.createElement('span', { className: 'text-green-600' }, 'Concluídas:'),
-                                    React.createElement('span', { className: 'font-semibold' }, getTabInfo('arrecadacao').completed)
-                                ]),
-                                React.createElement('div', { key: 'current', className: 'flex justify-between text-sm' }, [
-                                    React.createElement('span', { className: 'text-blue-600' }, 'Atual:'),
-                                    React.createElement('span', { className: 'font-semibold' },
-                                        getTabInfo('arrecadacao').current ? getTabInfo('arrecadacao').current.title : 'Nenhuma'
-                                    )
-                                ]),
-                                React.createElement('div', { key: 'pending', className: 'flex justify-between text-sm' }, [
-                                    React.createElement('span', { className: 'text-gray-600' }, 'Pendentes:'),
-                                    React.createElement('span', { className: 'font-semibold' },
-                                        8 - getTabInfo('arrecadacao').completed - (getTabInfo('arrecadacao').current ? 1 : 0)
-                                    )
-                                ])
-                            ])
-                        ]),
-
-                        // Folha Summary
-                        React.createElement('div', { key: 'folha-summary', className: 'bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm' }, [
-                            React.createElement('div', { key: 'header', className: 'flex items-center justify-between mb-4' }, [
-                                React.createElement('div', { key: 'title', className: 'flex items-center' }, [
-                                    React.createElement(Users, { key: 'icon', className: 'w-6 h-6 text-green-500 mr-2' }),
-                                    React.createElement('h3', { key: 'text', className: 'font-bold text-green-700' }, 'Folha de Pagamento')
-                                ]),
-                                React.createElement('div', { key: 'count', className: 'text-2xl font-bold text-green-600' },
-                                    `${getTabInfo('folha').completed}/8`
-                                )
-                            ]),
-                            React.createElement('div', { key: 'details', className: 'space-y-2' }, [
-                                React.createElement('div', { key: 'completed', className: 'flex justify-between text-sm' }, [
-                                    React.createElement('span', { className: 'text-green-600' }, 'Concluídas:'),
-                                    React.createElement('span', { className: 'font-semibold' }, getTabInfo('folha').completed)
-                                ]),
-                                React.createElement('div', { key: 'current', className: 'flex justify-between text-sm' }, [
-                                    React.createElement('span', { className: 'text-blue-600' }, 'Atual:'),
-                                    React.createElement('span', { className: 'font-semibold' },
-                                        getTabInfo('folha').current ? getTabInfo('folha').current.title : 'Nenhuma'
-                                    )
-                                ]),
-                                React.createElement('div', { key: 'pending', className: 'flex justify-between text-sm' }, [
-                                    React.createElement('span', { className: 'text-gray-600' }, 'Pendentes:'),
-                                    React.createElement('span', { className: 'font-semibold' },
-                                        8 - getTabInfo('folha').completed - (getTabInfo('folha').current ? 1 : 0)
-                                    )
-                                ])
-                            ])
-                        ])
-                    ])
-                ])
-            );
+    <script>
+        // Dados iniciais
+        const initialData = {
+            arrecadacao: [
+                { id: 1, title: "Backup Firebird", description: "Criar backup completo do banco Firebird - Arrecadação", icon: "💾", status: "completed" },
+                { id: 2, title: "Restore Firebird", description: "Restaurar backup do Firebird para ambiente de trabalho", icon: "📥", status: "completed" },
+                { id: 3, title: "Convert SQL SERVER", description: "Conversão dos dados do Firebird para SQL Server", icon: "⚙️", status: "current" },
+                { id: 4, title: "Backup SQL SERVER", description: "Criar backup do banco SQL Server convertido", icon: "💾", status: "pending" },
+                { id: 5, title: "Upload Backup Storage", description: "Enviar backup para armazenamento em nuvem", icon: "☁️", status: "pending" },
+                { id: 6, title: "Restore SQL SERVER Servidor", description: "Restaurar backup no servidor de produção", icon: "📥", status: "pending" },
+                { id: 7, title: "Executar Scripts SQL", description: "Executar scripts de migração e ajustes finais", icon: "⚙️", status: "pending" },
+                { id: 8, title: "Entrega", description: "Finalização e entrega do projeto de migração", icon: "🚚", status: "pending" }
+            ],
+            folha: [
+                { id: 1, title: "Backup Firebird", description: "Criar backup completo do banco Firebird - Folha", icon: "💾", status: "completed" },
+                { id: 2, title: "Restore Firebird", description: "Restaurar backup do Firebird para ambiente de trabalho", icon: "📥", status: "current" },
+                { id: 3, title: "Convert SQL SERVER", description: "Conversão dos dados do Firebird para SQL Server", icon: "⚙️", status: "pending" },
+                { id: 4, title: "Backup SQL SERVER", description: "Criar backup do banco SQL Server convertido", icon: "💾", status: "pending" },
+                { id: 5, title: "Upload Backup Storage", description: "Enviar backup para armazenamento em nuvem", icon: "☁️", status: "pending" },
+                { id: 6, title: "Restore SQL SERVER Servidor", description: "Restaurar backup no servidor de produção", icon: "📥", status: "pending" },
+                { id: 7, title: "Executar Scripts SQL", description: "Executar scripts de migração e ajustes finais", icon: "⚙️", status: "pending" },
+                { id: 8, title: "Entrega", description: "Finalização e entrega do projeto de migração", icon: "🚚", status: "pending" }
+            ]
         };
 
-        // Renderizar o componente
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(DualMigrationFlowchart));
+        // Estado da aplicação
+        let state = {
+            activeTab: 'arrecadacao',
+            isAdmin: false,
+            data: loadData() || initialData
+        };
+
+        // Funções utilitárias
+        function loadData() {
+            const saved = localStorage.getItem('migrationData');
+            return saved ? JSON.parse(saved) : null;
+        }
+
+        function saveData() {
+            localStorage.setItem('migrationData', JSON.stringify(state.data));
+            updateLastUpdate();
+        }
+
+        function updateLastUpdate() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        function getCurrentSteps() {
+            return state.data[state.activeTab];
+        }
+
+        function getStepStats(type) {
+            const steps = state.data[type];
+            const completed = steps.filter(s => s.status === 'completed').length;
+            const current = steps.find(s => s.status === 'current');
+            const pending = steps.filter(s => s.status === 'pending').length;
+            return { completed, current, pending, total: steps.length };
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'completed': return 'bg-green-500';
+                case 'current': return 'bg-blue-500';
+                default: return 'bg-gray-400';
+            }
+        }
+
+        function getStatusBorder(status) {
+            switch (status) {
+                case 'completed': return 'border-green-500 shadow-green-200';
+                case 'current': return 'border-blue-500 shadow-blue-200 shadow-lg';
+                default: return 'border-gray-300';
+            }
+        }
+
+        function getStatusIcon(status) {
+            switch (status) {
+                case 'completed': return '✅';
+                case 'current': return '<span class="animate-pulse">⏰</span>';
+                default: return '⭕';
+            }
+        }
+
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'completed': 
+                    return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">✅ Concluído</span>';
+                case 'current': 
+                    return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">⏰ Em Andamento</span>';
+                default: 
+                    return '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Pendente</span>';
+            }
+        }
+
+        // Renderização
+        function renderFlowchart() {
+            const steps = getCurrentSteps();
+            const flowchart = document.getElementById('flowchart');
+            
+            flowchart.innerHTML = steps.map((step, index) => `
+                <div class="relative">
+                    ${index < steps.length - 1 ? '<div class="hidden lg:block absolute top-16 -right-3 w-6 h-0.5 bg-gradient-to-r from-slate-300 to-slate-200 z-0"></div>' : ''}
+                    <div class="relative bg-white rounded-xl border-2 ${getStatusBorder(step.status)} p-6 hover:shadow-xl transition-all duration-300 z-10">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="${getStatusColor(step.status)} rounded-full w-12 h-12 flex items-center justify-center text-white">
+                                ${getStatusIcon(step.status)}
+                            </div>
+                            <span class="text-2xl font-bold text-slate-300">${step.id.toString().padStart(2, '0')}</span>
+                        </div>
+                        <div class="flex justify-center mb-4">
+                            <div class="${getStatusColor(step.status)} rounded-lg p-3">
+                                <span class="text-2xl">${step.icon}</span>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-lg font-bold mb-2 ${step.status === 'completed' ? 'text-green-700' : step.status === 'current' ? 'text-blue-700' : 'text-gray-500'}">${step.title}</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">${step.description}</p>
+                            <div class="mt-4">${getStatusBadge(step.status)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateProgress() {
+            const steps = getCurrentSteps();
+            const completed = steps.filter(s => s.status === 'completed').length;
+            const current = steps.find(s => s.status === 'current');
+            const percentage = (completed / steps.length) * 100;
+
+            document.getElementById('progressLabel').textContent = `Progresso - ${state.activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'}`;
+            document.getElementById('progressText').textContent = `${percentage.toFixed(1)}% (${completed}/${steps.length} concluídas)`;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressBar').className = `h-3 rounded-full transition-all duration-500 ${state.activeTab === 'arrecadacao' ? 'bg-gradient-blue' : 'bg-gradient-green'}`;
+            
+            if (current) {
+                document.getElementById('currentStepText').textContent = `${state.activeTab === 'arrecadacao' ? 'Arrecadação' : 'Folha de Pagamento'} - Etapa Atual: ${current.title}`;
+                document.getElementById('currentStatus').style.display = 'block';
+            } else {
+                document.getElementById('currentStatus').style.display = 'none';
+            }
+        }
+
+        function updateSummary() {
+            const arrecadacaoStats = getStepStats('arrecadacao');
+            const folhaStats = getStepStats('folha');
+
+            // Arrecadação
+            document.getElementById('arrecadacaoCount').textContent = `${arrecadacaoStats.completed}/8`;
+            document.getElementById('arrecadacaoCompleted').textContent = arrecadacaoStats.completed;
+            document.getElementById('arrecadacaoCurrent').textContent = arrecadacaoStats.current ? arrecadacaoStats.current.title : 'Nenhuma';
+            document.getElementById('arrecadacaoPending').textContent = arrecadacaoStats.pending;
+            document.getElementById('badgeArrecadacao').textContent = `${arrecadacaoStats.completed}/8`;
+
+            // Folha
+            document.getElementById('folhaCount').textContent = `${folhaStats.completed}/8`;
+            document.getElementById('folhaCompleted').textContent = folhaStats.completed;
+            document.getElementById('folhaCurrent').textContent = folhaStats.current ? folhaStats.current.title : 'Nenhuma';
+            document.getElementById('folhaPending').textContent = folhaStats.pending;
+            document.getElementById('badgeFolha').textContent = `${folhaStats.completed}/8`;
+        }
+
+        function updateTabs() {
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(btn => {
+                btn.classList.remove('tab-active', 'text-blue-600', 'text-green-600', 'font-medium');
+                btn.classList.add('text-gray-600');
+            });
+
+            const activeBtn = document.getElementById(state.activeTab === 'arrecadacao' ? 'tabArrecadacao' : 'tabFolha');
+            activeBtn.classList.remove('text-gray-600');
+            activeBtn.classList.add('tab-active', state.activeTab === 'arrecadacao' ? 'text-blue-600' : 'text-green-600', 'font-medium');
+        }
+
+        function render() {
+            renderFlowchart();
+            updateProgress();
+            updateSummary();
+            updateTabs();
+            updateLastUpdate();
+        }
+
+        // Navegação entre passos
+        function moveToNextStep() {
+            const steps = getCurrentSteps();
+            const currentIndex = steps.findIndex(s => s.status === 'current');
+            if (currentIndex < steps.length - 1) {
+                steps[currentIndex].status = 'completed';
+                steps[currentIndex + 1].status = 'current';
+                saveData();
+                render();
+            }
+        }
+
+        function moveToPreviousStep() {
+            const steps = getCurrentSteps();
+            const currentIndex = steps.findIndex(s => s.status === 'current');
+            if (currentIndex > 0) {
+                steps[currentIndex].status = 'pending';
+                steps[currentIndex - 1].status = 'current';
+                saveData();
+                render();
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('tabArrecadacao').addEventListener('click', () => {
+            state.activeTab = 'arrecadacao';
+            render();
+        });
+
+        document.getElementById('tabFolha').addEventListener('click', () => {
+            state.activeTab = 'folha';
+            render();
+        });
+
+        document.getElementById('adminBtn').addEventListener('click', () => {
+            document.getElementById('loginBox').classList.toggle('hidden');
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const password = document.getElementById('passwordInput').value;
+            if (password === 'admin123') {
+                state.isAdmin = true;
+                document.getElementById('adminBtn').classList.add('hidden');
+                document.getElementById('adminControls').classList.remove('hidden');
+                document.getElementById('loginBox').classList.add('hidden');
+                document.getElementById('passwordInput').value = '';
+            } else {
+                alert('Senha incorreta! Use: admin123');
+            }
+        });
+
+        document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('loginBtn').click();
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            state.isAdmin = false;
+            document.getElementById('adminBtn').classList.remove('hidden');
+            document.getElementById('adminControls').classList.add('hidden');
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', moveToNextStep);
+        document.getElementById('prevBtn').addEventListener('click', moveToPreviousStep);
+
+        // Verificação de atualizações em tempo real
+        setInterval(() => {
+            const savedData = loadData();
+            if (savedData && JSON.stringify(savedData) !== JSON.stringify(state.data)) {
+                state.data = savedData;
+                render();
+            }
+        }, 3000);
+
+        // Inicialização
+        render();
     </script>
 </body>
 </html>
