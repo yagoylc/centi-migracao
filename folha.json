@@ -9,13 +9,13 @@
     "id": 2,
     "title": "Restore Firebird",
     "description": "Restaurar backup do Firebird para ambiente de trabalho",
-    "status": "current"
+    "status": "completed"
   },
   {
     "id": 3,
     "title": "Convert SQL SERVER",
     "description": "Conversão dos dados do Firebird para SQL Server",
-    "status": "pending"
+    "status": "current"
   },
   {
     "id": 4,
