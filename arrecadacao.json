@@ -15,13 +15,13 @@
     "id": 3,
     "title": "Convert SQL SERVER",
     "description": "Conversão dos dados do Firebird para SQL Server",
-    "status": "current"
+    "status": "completed"
   },
   {
     "id": 4,
     "title": "Backup SQL SERVER",
     "description": "Criar backup do banco SQL Server convertido",
-    "status": "pending"
+    "status": "current"
   },
   {
     "id": 5,
