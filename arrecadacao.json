@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "title": "Backup Firebird",
+    "description": "Criar backup completo do banco Firebird - Arrecadação",
+    "icon": "💾",
+    "status": "completed"
+  },
+  {
+    "id": 2,
+    "title": "Restore Firebird",
+    "description": "Restaurar backup do Firebird para ambiente de trabalho",
+    "icon": "📥",
+    "status": "completed"
+  },
+  {
+    "id": 3,
+    "title": "Convert SQL SERVER",
+    "description": "Conversão dos dados do Firebird para SQL Server",
+    "icon": "⚙️",
+    "status": "current"
+  },
+  {
+    "id": 4,
+    "title": "Backup SQL SERVER",
+    "description": "Criar backup do banco SQL Server convertido",
+    "icon": "💾",
+    "status": "pending"
+  },
+  {
+    "id": 5,
+    "title": "Upload Backup Storage",
+    "description": "Enviar backup para armazenamento em nuvem",
+    "icon": "☁️",
+    "status": "pending"
+  },
+  {
+    "id": 6,
+    "title": "Restore SQL SERVER Servidor",
+    "description": "Restaurar backup no servidor de produção",
+    "icon": "📥",
+    "status": "pending"
+  },
+  {
+    "id": 7,
+    "title": "Executar Scripts SQL",
+    "description": "Executar scripts de migração e ajustes finais",
+    "icon": "⚙️",
+    "status": "pending"
+  },
+  {
+    "id": 8,
+    "title": "Entrega",
+    "description": "Finalização e entrega do projeto de migração",
+    "icon": "🚚",
+    "status": "pending"
+  }
+]
