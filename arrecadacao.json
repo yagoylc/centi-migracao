@@ -33,13 +33,13 @@
     "id": 6,
     "title": "Restore SQL SERVER Servidor",
     "description": "Restaurar backup no servidor de produção",
-    "status": "current"
+    "status": "completed"
   },
   {
     "id": 7,
     "title": "Executar Scripts SQL",
     "description": "Executar scripts de migração e ajustes finais",
-    "status": "pending"
+    "status": "current"
   },
   {
     "id": 8,
