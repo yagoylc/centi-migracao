@@ -21,13 +21,13 @@
     "id": 4,
     "title": "Backup SQL SERVER",
     "description": "Criar backup do banco SQL Server convertido",
-    "status": "current"
+    "status": "completed"
   },
   {
     "id": 5,
     "title": "Upload Backup Storage",
     "description": "Enviar backup para armazenamento em nuvem",
-    "status": "pending"
+    "status": "current"
   },
   {
     "id": 6,
